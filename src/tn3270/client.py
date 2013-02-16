@@ -45,8 +45,8 @@ class TN3270Client(tn3270._parser.VirtualScreenParser):
     def _send(self, buffer):
         self._send_queue.put(buffer)
         
-    def sends(self, str):
-        return self.send("".join(["\x7d", string.translate(str, tn3270._parser.a2e)]))
+    def sends(self, str, cursor_pos=None):
+        return self.send("".join(["\x7d", "\xc1\x50\x11\xc1\x50", string.translate(str, tn3270._parser.a2e)]))
         
     def send(self, buffer):
         self._send("".join(["\x00\x00\x00\x00\x00", buffer, "\xff\xef"]))

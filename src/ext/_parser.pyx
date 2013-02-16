@@ -253,5 +253,7 @@ cdef class VirtualScreenParser(IAnalyser):
     def get_screen(self):
         res = []
         for i in xrange(self._rows):
-            res.append(self._screen[i * self._cols : self._cols + i * self._cols].replace('\x00', ' '))
-        return '\n'.join(res)
+            line = self._screen[i * self._cols : self._cols + i * self._cols].replace('\x00', ' ').replace("`", " ").rstrip()
+            if res or line:
+                res.append(line)
+        return '\n'.join(res).rstrip()
