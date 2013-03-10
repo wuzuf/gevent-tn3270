@@ -13,6 +13,7 @@ class TN3270Client(tn3270._parser.VirtualScreenParser):
         tn3270._parser.VirtualScreenParser.__init__(self, 24, 80)
         self.luname = luname
         self.device_type = device_type
+        self.rto = 300
         self._recv_queue = gevent.queue.Queue()
         self._send_queue = gevent.queue.Queue()
         self._group = gevent.pool.Group()
@@ -25,10 +26,20 @@ class TN3270Client(tn3270._parser.VirtualScreenParser):
         self._group.spawn(self._send_loop)
         self._group.spawn(self._recv_loop)
         return self._recv_queue.get()
+
+    def disconnect(self):
+        logger.info('disconnecting')
+        self._send_queue.put(None)
+        self._socket.close()
+        self._group.join()
         
     def _recv_loop(self):
         while True:
-            data = self._socket.recv(2048)
+            try:
+                data = self._socket.recv(2048)
+            except socket.error, ex:
+                if ex[0] == socket.EBADF:
+                   break
             if not data:
                 logger.info('disconnected')
                 break
@@ -37,20 +48,19 @@ class TN3270Client(tn3270._parser.VirtualScreenParser):
     def _send_loop(self):
         while True:
             data = self._send_queue.get()
+            if data is None:
+                break
             self._socket.sendall(data)
             
-    def join(self):
-        self._group.join()
-        
     def _send(self, buffer):
         self._send_queue.put(buffer)
         
-    def sends(self, str, cursor_pos=None):
-        return self.send("".join(["\x7d", "\xc1\x50\x11\xc1\x50", string.translate(str, tn3270._parser.a2e)]))
+    def sends(self, s, cursor_pos=None):
+        return self.send("".join(["\x7d", "\xc1\x50\x11\xc1\x50", string.translate(str(s), tn3270._parser.a2e)]))
         
     def send(self, buffer):
         self._send("".join(["\x00\x00\x00\x00\x00", buffer, "\xff\xef"]))
-        return self._recv_queue.get()
+        return self._recv_queue.get(timeout=self.rto)
         
     def on_tn_command(self, command, arg = None):
         if command == 0xfd and arg == 0x28: # DO TN3270
