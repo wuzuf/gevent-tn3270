@@ -61,7 +61,7 @@ class TN3270Client(tn3270._parser.VirtualScreenParser):
     def send(self, buffer):
         self._send("".join(["\x00\x00\x00\x00\x00", buffer, "\xff\xef"]))
         return self._recv_queue.get(timeout=self.rto)
-        
+
     def on_tn_command(self, command, arg = None):
         if command == 0xfd and arg == 0x28: # DO TN3270
             self._send("\xff\xfb\x28") # WILL TN3270
@@ -80,3 +80,4 @@ class TN3270Client(tn3270._parser.VirtualScreenParser):
         
     def on_tn3270_message(self):
         self._recv_queue.put(self.get_screen())
+

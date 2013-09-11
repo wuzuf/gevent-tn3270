@@ -249,6 +249,11 @@ cdef class VirtualScreenParser(IAnalyser):
         else:
             memcpy(self._screen + self._bufferPos, <char*>txt, len(txt))
         self._bufferPos = (self._bufferPos + len(txt)) % (self._rows*self._cols)
+
+    def rebuild(self):
+        memset(self._screen, 0, self._rows * self._cols)
+        for i in xrange(self._rows):
+            self._screen[(self._cols - 1) + (self._cols * i)    ] = '`'
         
     def get_screen(self):
         res = []
@@ -257,3 +262,6 @@ cdef class VirtualScreenParser(IAnalyser):
             if res or line:
                 res.append(line)
         return '\n'.join(res).rstrip()
+
+    def on_error(self, error):
+        print "ERROR: at %s" % error['offset']
